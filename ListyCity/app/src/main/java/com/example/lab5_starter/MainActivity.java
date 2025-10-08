@@ -23,6 +23,7 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity implements CityDialogFragment.CityDialogListener {
 
     private Button addCityButton;
+    private Button deleteCityButton;
     private ListView cityListView;
     private FirebaseFirestore db;
     private CollectionReference citiesRef;
@@ -46,6 +47,7 @@ public class MainActivity extends AppCompatActivity implements CityDialogFragmen
 
         // Set views
         addCityButton = findViewById(R.id.buttonAddCity);
+        deleteCityButton = findViewById(R.id.buttonDeleteCity);
         cityListView = findViewById(R.id.listviewCities);
 
         // create city array
@@ -58,6 +60,16 @@ public class MainActivity extends AppCompatActivity implements CityDialogFragmen
         addCityButton.setOnClickListener(view -> {
             CityDialogFragment cityDialogFragment = new CityDialogFragment();
             cityDialogFragment.show(getSupportFragmentManager(),"Add City");
+        });
+
+        deleteCityButton.setOnClickListener(view -> {
+            if (cityArrayList.isEmpty()) {
+                // Show a message that there are no cities to delete
+                android.widget.Toast.makeText(this, "No cities to delete", android.widget.Toast.LENGTH_SHORT).show();
+                return;
+            }
+            // Show a simple dialog to select which city to delete
+            showDeleteCityDialog();
         });
 
         cityListView.setOnItemClickListener((adapterView, view, i, l) -> {
@@ -100,7 +112,40 @@ public class MainActivity extends AppCompatActivity implements CityDialogFragmen
 
         DocumentReference docRef = citiesRef.document(city.getName());
         docRef.set(city);
+    }
 
+    @Override
+    public void deleteCity(City city) {
+        // Remove from local list
+        cityArrayList.remove(city);
+        cityArrayAdapter.notifyDataSetChanged();
+
+        // Remove from Firestore database
+        DocumentReference docRef = citiesRef.document(city.getName());
+        docRef.delete()
+            .addOnSuccessListener(aVoid -> {
+                Log.d("Firestore", "City successfully deleted from Firestore");
+            })
+            .addOnFailureListener(e -> {
+                Log.e("Firestore", "Error deleting city from Firestore", e);
+            });
+    }
+
+    private void showDeleteCityDialog() {
+        // Create an array of city names for the dialog
+        String[] cityNames = new String[cityArrayList.size()];
+        for (int i = 0; i < cityArrayList.size(); i++) {
+            cityNames[i] = cityArrayList.get(i).getName() + " (" + cityArrayList.get(i).getProvince() + ")";
+        }
+
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Select City to Delete")
+            .setItems(cityNames, (dialog, which) -> {
+                City cityToDelete = cityArrayList.get(which);
+                deleteCity(cityToDelete);
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
     }
 
     public void addDummyData(){
