@@ -82,7 +82,7 @@ public class MainActivity extends AppCompatActivity implements CityDialogFragmen
           if(error!= null){
               Log.e("Firestore", error.toString());
           }
-          if (value!=null && value.isEmpty()){
+          if (value!=null){
               cityArrayList.clear();
               for (QueryDocumentSnapshot snapshot : value){
                   String name = snapshot.getString("name");
